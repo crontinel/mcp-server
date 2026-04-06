@@ -1,0 +1,27 @@
+{
+  "name": "@crontinel/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Crontinel background job monitoring",
+  "main": "dist/index.js",
+  "bin": {
+    "crontinel-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["mcp", "laravel", "monitoring", "cron", "horizon", "queue"],
+  "author": "Harun R Rayhan",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
