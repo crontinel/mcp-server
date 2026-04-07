@@ -19,6 +19,14 @@
   "keywords": ["mcp", "laravel", "monitoring", "cron", "horizon", "queue"],
   "author": "Harun R Rayhan",
   "license": "MIT",
+  "homepage": "https://crontinel.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HarunRRayhan/crontinel-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HarunRRayhan/crontinel-mcp-server/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
