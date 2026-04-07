@@ -10,7 +10,11 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
   },
   "keywords": ["mcp", "laravel", "monitoring", "cron", "horizon", "queue"],
   "author": "Harun R Rayhan",
@@ -20,7 +24,9 @@
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
   },
   "engines": {
     "node": ">=18"
