@@ -115,7 +115,7 @@ async function callCrontinel(method: string, params: Record<string, unknown>): P
 }
 
 const server = new Server(
-  { name: 'crontinel', version: '0.1.0' },
+  { name: 'crontinel', version: '0.2.0' },
   { capabilities: { tools: {} } }
 );
 
