@@ -11,7 +11,7 @@
     "crontinel-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc && chmod +x dist/index.js",
     "dev": "ts-node src/index.ts",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
