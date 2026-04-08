@@ -70,6 +70,20 @@ const TOOLS = [
       required: ['alert_key'],
     },
   },
+  {
+    name: 'create_alert',
+    description: 'Create a new alert channel (slack, email, or webhook) for the app',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['slack', 'email', 'webhook'], description: 'Alert channel type' },
+        webhook_url: { type: 'string', description: 'Slack incoming webhook URL (required when type=slack)' },
+        to: { type: 'string', description: 'Recipient email address (required when type=email)' },
+        url: { type: 'string', description: 'Webhook endpoint URL (required when type=webhook)' },
+      },
+      required: ['type'],
+    },
+  },
 ];
 
 async function callCrontinel(method: string, params: Record<string, unknown>): Promise<unknown> {
@@ -101,7 +115,7 @@ async function callCrontinel(method: string, params: Record<string, unknown>): P
 }
 
 const server = new Server(
-  { name: 'crontinel', version: '0.1.0' },
+  { name: 'crontinel', version: '0.2.0' },
   { capabilities: { tools: {} } }
 );
 
