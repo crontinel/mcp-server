@@ -191,6 +191,16 @@ All tool definitions are declared locally so your AI can inspect them without a 
 
 **`npx` slow on first run** — `npx -y` downloads the package on first use. Run `npm install -g @crontinel/mcp-server` once to cache it locally, then change `command` to `crontinel-mcp` and remove the `args`.
 
+## Ecosystem
+
+| Repo | Description |
+|---|---|
+| [@crontinel/mcp-server](https://github.com/crontinel/mcp-server) (this repo) | MCP server for AI assistants |
+| [crontinel/laravel](https://github.com/crontinel/crontinel) | OSS Laravel package that reports data this server reads |
+| [docs.crontinel.com](https://docs.crontinel.com) | Full documentation including MCP integration guide |
+
+---
+
 ## License
 
 MIT
