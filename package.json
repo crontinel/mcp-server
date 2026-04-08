@@ -32,10 +32,10 @@
   "homepage": "https://crontinel.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HarunRRayhan/crontinel-mcp-server.git"
+    "url": "git+https://github.com/crontinel/mcp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/HarunRRayhan/crontinel-mcp-server/issues"
+    "url": "https://github.com/crontinel/mcp-server/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
