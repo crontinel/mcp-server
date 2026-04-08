@@ -3,7 +3,10 @@
   "version": "0.2.0",
   "description": "MCP server for Crontinel background job monitoring",
   "main": "dist/index.js",
-  "files": ["dist/", "README.md"],
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "bin": {
     "crontinel-mcp": "dist/index.js"
   },
@@ -16,13 +19,20 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
   },
-  "keywords": ["mcp", "laravel", "monitoring", "cron", "horizon", "queue"],
+  "keywords": [
+    "mcp",
+    "laravel",
+    "monitoring",
+    "cron",
+    "horizon",
+    "queue"
+  ],
   "author": "Harun R Rayhan",
   "license": "MIT",
   "homepage": "https://crontinel.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HarunRRayhan/crontinel-mcp-server.git"
+    "url": "git+https://github.com/HarunRRayhan/crontinel-mcp-server.git"
   },
   "bugs": {
     "url": "https://github.com/HarunRRayhan/crontinel-mcp-server/issues"
