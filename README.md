@@ -49,7 +49,7 @@ Add to `~/.cursor/mcp.json` or the project-level `.cursor/mcp.json`:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `CRONTINEL_API_KEY` | Yes | — | Your Crontinel API key |
+| `CRONTINEL_API_KEY` | Yes | n/a | Your Crontinel API key |
 | `CRONTINEL_API_URL` | No | `https://app.crontinel.com` | Override the API base URL (self-hosted or local dev) |
 
 ## Available tools
@@ -107,7 +107,7 @@ Get queue depth, failed count, and oldest pending job age.
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `app_slug` | string | Yes | App slug |
-| `queue` | string | No | Specific queue name — omit for all queues |
+| `queue` | string | No | Specific queue name, omit for all queues |
 
 **Returns:** Array of queue objects with `name`, `depth`, `failed_count`, `oldest_job_age_seconds`.
 
@@ -183,13 +183,13 @@ All tool definitions are declared locally so your AI can inspect them without a 
 
 ## Troubleshooting
 
-**`401 Unauthorized`** — Your `CRONTINEL_API_KEY` is missing or invalid. Check the env var is set in your MCP config, not your shell profile (MCP servers don't inherit your shell environment).
+**`401 Unauthorized`**: Your `CRONTINEL_API_KEY` is missing or invalid. Check that the env var is set in your MCP config, not your shell profile (MCP servers don't inherit your shell environment).
 
-**`404 Not Found` on a tool call** — The `app_slug` doesn't match any app in your account. Copy the slug from the app URL in the Crontinel dashboard (`app.crontinel.com/apps/{slug}`).
+**`404 Not Found` on a tool call**: The `app_slug` doesn't match any app in your account. Copy the slug from the app URL in the Crontinel dashboard (`app.crontinel.com/apps/{slug}`).
 
-**Tools not showing up in Claude/Cursor** — Restart the AI client after updating the MCP config. Most clients only load MCP servers at startup.
+**Tools not showing up in Claude/Cursor**: Restart the AI client after updating the MCP config. Most clients only load MCP servers at startup.
 
-**`npx` slow on first run** — `npx -y` downloads the package on first use. Run `npm install -g @crontinel/mcp-server` once to cache it locally, then change `command` to `crontinel-mcp` and remove the `args`.
+**`npx` slow on first run**: `npx -y` downloads the package on first use. Run `npm install -g @crontinel/mcp-server` once to cache it locally, then change `command` to `crontinel-mcp` and remove the `args`.
 
 ## Ecosystem
 
