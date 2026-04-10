@@ -1,6 +1,13 @@
 # @crontinel/mcp-server
 
-An MCP (Model Context Protocol) server that connects AI assistants to [Crontinel](https://crontinel.com), the background job monitoring SaaS for Laravel applications. It acts as a stdio transport, proxying tool calls from your AI assistant to the Crontinel REST API.
+[![npm version](https://img.shields.io/npm/v/@crontinel/mcp-server)](https://www.npmjs.com/package/@crontinel/mcp-server)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/crontinel/mcp-server/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/crontinel/mcp-server)](https://github.com/crontinel/mcp-server)
+
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects AI assistants to [Crontinel](https://crontinel.com), the background job monitoring platform for Laravel. It runs as a local stdio process, proxying tool calls from your AI assistant to the Crontinel REST API.
+
+Ask your AI assistant questions like "Did my cron jobs run last night?" or "What's the queue depth right now?" and get answers inline, without opening a browser.
 
 ## Requirements
 
@@ -9,9 +16,21 @@ An MCP (Model Context Protocol) server that connects AI assistants to [Crontinel
 
 ## Installation
 
+```bash
+npx -y @crontinel/mcp-server
+```
+
+Or install globally:
+
+```bash
+npm install -g @crontinel/mcp-server
+```
+
+## Configuration
+
 ### Claude Code
 
-Add to `.claude/settings.json`:
+Add to `~/.claude/settings.json` (or use the Claude Code settings UI):
 
 ```json
 {
@@ -45,23 +64,28 @@ Add to `~/.cursor/mcp.json` or the project-level `.cursor/mcp.json`:
 }
 ```
 
-## Environment variables
+### Environment Variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `CRONTINEL_API_KEY` | Yes | n/a | Your Crontinel API key |
 | `CRONTINEL_API_URL` | No | `https://app.crontinel.com` | Override the API base URL (self-hosted or local dev) |
 
-## Available tools
+## Available Tools
+
+| Tool | Description |
+|---|---|
+| `list_scheduled_jobs` | List all monitored cron commands with last run status |
+| `get_cron_status` | Last run details for a specific command (exit code, duration, output) |
+| `get_queue_status` | Depth, failed count, and wait time for queues |
+| `get_horizon_status` | Horizon supervisor health snapshot (status, failed/min) |
+| `list_recent_alerts` | Alerts fired in the last N hours |
+| `acknowledge_alert` | Dismiss an active alert by its key |
+| `create_alert` | Create a new alert channel (Slack, email, or webhook) |
 
 ### `list_scheduled_jobs`
 
 List all monitored cron jobs for an app, with their last run status and timing.
-
-**Example prompts:**
-- "Show me all cron jobs for my app"
-- "Which cron jobs haven't run today?"
-- "List scheduled jobs for my-app"
 
 **Parameters:**
 
@@ -76,11 +100,6 @@ List all monitored cron jobs for an app, with their last run status and timing.
 ### `get_cron_status`
 
 Get the last run result for a specific cron command.
-
-**Example prompts:**
-- "Did the daily cleanup job run successfully?"
-- "What was the exit code for the send-emails command?"
-- "When did `php artisan queue:prune-batches` last run?"
 
 **Parameters:**
 
@@ -97,17 +116,12 @@ Get the last run result for a specific cron command.
 
 Get queue depth, failed count, and oldest pending job age.
 
-**Example prompts:**
-- "How deep is the default queue?"
-- "Are there any failed jobs right now?"
-- "Check queue health for my-app"
-
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `app_slug` | string | Yes | App slug |
-| `queue` | string | No | Specific queue name, omit for all queues |
+| `queue` | string | No | Specific queue name; omit for all queues |
 
 **Returns:** Array of queue objects with `name`, `depth`, `failed_count`, `oldest_job_age_seconds`.
 
@@ -115,12 +129,7 @@ Get queue depth, failed count, and oldest pending job age.
 
 ### `get_horizon_status`
 
-Get a health snapshot of Laravel Horizon: supervisor states, paused/running, failed-jobs-per-minute.
-
-**Example prompts:**
-- "Is Horizon running?"
-- "Check if Horizon is paused"
-- "What's Horizon's failed jobs per minute?"
+Get a health snapshot of Laravel Horizon: supervisor states, paused/running, failed jobs per minute.
 
 **Parameters:**
 
@@ -135,11 +144,6 @@ Get a health snapshot of Laravel Horizon: supervisor states, paused/running, fai
 ### `list_recent_alerts`
 
 List alerts that have fired within the last N hours.
-
-**Example prompts:**
-- "Any alerts in the last 24 hours?"
-- "Show me firing alerts for my-app"
-- "What triggered an alert last night?"
 
 **Parameters:**
 
@@ -156,10 +160,6 @@ List alerts that have fired within the last N hours.
 
 Dismiss an active alert so it stops notifying.
 
-**Example prompts:**
-- "Acknowledge the queue-depth alert for my-app"
-- "Silence the horizon-paused alert"
-
 **Parameters:**
 
 | Name | Type | Required | Description |
@@ -171,13 +171,36 @@ Dismiss an active alert so it stops notifying.
 
 ---
 
-## How it works
+### `create_alert`
 
-When your AI assistant invokes a Crontinel tool, this package:
+Create a new alert channel for an app. Requires a Pro or Team plan.
 
-1. Receives the JSON-RPC tool call over stdin
-2. Forwards it as an HTTP POST to `https://app.crontinel.com/api/mcp` with your API key in the `Authorization` header
-3. Returns the JSON-RPC response back over stdout
+**Parameters:**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `app_slug` | string | Yes | App slug |
+| `type` | string | Yes | `slack`, `email`, or `webhook` |
+| `config` | object | Yes | Channel-specific config (see below) |
+
+**Config by type:**
+
+| Type | Required fields |
+|---|---|
+| `slack` | `webhook_url`: Incoming Webhook URL |
+| `email` | `address`: Recipient email address |
+| `webhook` | `url`: Endpoint URL; optionally `secret` for HMAC signing |
+
+**Returns:** The new alert channel ID on success.
+
+---
+
+## How It Works
+
+1. Your AI assistant spawns the MCP server as a local stdio process
+2. The server receives JSON-RPC tool calls over stdin
+3. It forwards each call as an HTTP request to `app.crontinel.com/api/mcp` with your API key in the `Authorization` header
+4. The JSON-RPC response is returned over stdout
 
 All tool definitions are declared locally so your AI can inspect them without a network round-trip.
 
@@ -191,16 +214,22 @@ All tool definitions are declared locally so your AI can inspect them without a 
 
 **`npx` slow on first run**: `npx -y` downloads the package on first use. Run `npm install -g @crontinel/mcp-server` once to cache it locally, then change `command` to `crontinel-mcp` and remove the `args`.
 
+## Documentation
+
+For the full integration guide, tool reference, and setup walkthroughs:
+
+- [MCP Overview](https://docs.crontinel.com/mcp/overview/)
+- [Available Tools Reference](https://docs.crontinel.com/mcp/tools/)
+- [Claude Code Setup](https://docs.crontinel.com/mcp/claude-code/)
+
 ## Ecosystem
 
-| Repo | Description |
+| Package | Description |
 |---|---|
-| [@crontinel/mcp-server](https://github.com/crontinel/mcp-server) (this repo) | MCP server for AI assistants |
-| [crontinel/laravel](https://github.com/crontinel/crontinel) | OSS Laravel package that reports data this server reads |
-| [docs.crontinel.com](https://docs.crontinel.com) | Full documentation including MCP integration guide |
-
----
+| [@crontinel/mcp-server](https://github.com/crontinel/mcp-server) | MCP server for AI assistants (this repo) |
+| [crontinel/laravel](https://github.com/crontinel/crontinel) | Laravel package that reports the data this server reads |
+| [docs.crontinel.com](https://docs.crontinel.com) | Full documentation |
 
 ## License
 
-MIT
+[MIT](https://github.com/crontinel/mcp-server/blob/main/LICENSE)
