@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mock fetch globally ──────────────────────────────────────────────────
 
@@ -164,6 +164,7 @@ describe('tool argument validation shapes', () => {
       properties: { hours: { type: 'integer' } },
     };
     expect(schema.properties.hours.type).toBe('integer');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((schema as any).required).toBeUndefined();
   });
 
