@@ -7,12 +7,12 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects AI assistants to [Crontinel](https://crontinel.com), the background job monitoring platform for Laravel. It runs as a local stdio process, proxying tool calls from your AI assistant to the Crontinel REST API.
 
-Ask your AI assistant questions like "Did my cron jobs run last night?" or "What's the queue depth right now?" and get answers inline, without opening a browser.
+Ask your AI assistant questions like "Did my cron jobs run last night?" or "What's the queue depth right now?" or "Trigger a redeploy" and get answers inline, without opening a browser.
 
 ## Requirements
 
 - Node.js 18+
-- A Crontinel account with an API key ([app.crontinel.com](https://app.crontinel.com))
+- A Crontinel account with an API key — get one at [app.crontinel.com/settings](https://app.crontinel.com/settings)
 
 ## Installation
 
@@ -27,6 +27,24 @@ npm install -g @crontinel/mcp-server
 ```
 
 ## Configuration
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "crontinel": {
+      "command": "npx",
+      "args": ["-y", "@crontinel/mcp-server"],
+      "env": {
+        "CRONTINEL_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
 
 ### Claude Code
 
@@ -64,6 +82,44 @@ Add to `~/.cursor/mcp.json` or the project-level `.cursor/mcp.json`:
 }
 ```
 
+### Windsurf
+
+Add to `~/.windsurf/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "crontinel": {
+      "command": "npx",
+      "args": ["-y", "@crontinel/mcp-server"],
+      "env": {
+        "CRONTINEL_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Continue.dev
+
+Add to `~/.continue/config.json`:
+
+```json
+{
+  "experimental": {
+    "mcpServers": {
+      "crontinel": {
+        "command": "npx",
+        "args": ["-y", "@crontinel/mcp-server"],
+        "env": {
+          "CRONTINEL_API_KEY": "your-api-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
 ### Environment Variables
 
 | Variable | Required | Default | Description |
@@ -85,18 +141,11 @@ Add to `~/.cursor/mcp.json` or the project-level `.cursor/mcp.json`:
 
 ### `list_scheduled_jobs`
 
-List all monitored cron jobs for an app, with their last run status and timing.
+List all monitored cron jobs, with their last run status and timing.
 
-**Parameters:**
-
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `app_slug` | string | Yes | App slug from your Crontinel dashboard |
-
-**Returns:** Array of job objects with `command`, `schedule`, `last_run_at`, `last_exit_code`, `last_duration_ms`, `status` (`ok` / `late` / `failing` / `never_ran`).
+**Returns:** Array of job objects with `command`, `last_run_at`, `last_status`, `run_count_today`.
 
 ---
-
 ### `get_cron_status`
 
 Get the last run result for a specific cron command.
@@ -105,13 +154,11 @@ Get the last run result for a specific cron command.
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `app_slug` | string | Yes | App slug |
-| `command` | string | Yes | The cron command string (e.g. `php artisan inspire`) |
+| `command` | string | Yes | The cron command string or partial match (e.g. `php artisan inspire` or `send-invoices`) |
 
-**Returns:** `command`, `last_run_at`, `exit_code`, `duration_ms`, `output` (last 500 chars of stdout/stderr), `status`.
+**Returns:** `command`, `status`, `exit_code`, `duration_ms`, `started_at`, `finished_at`, `output`.
 
 ---
-
 ### `get_queue_status`
 
 Get queue depth, failed count, and oldest pending job age.
@@ -120,27 +167,18 @@ Get queue depth, failed count, and oldest pending job age.
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `app_slug` | string | Yes | App slug |
 | `queue` | string | No | Specific queue name; omit for all queues |
 
-**Returns:** Array of queue objects with `name`, `depth`, `failed_count`, `oldest_job_age_seconds`.
+**Returns:** Array of queue objects with `name`, `depth`, `failed`, `oldest_job_age_seconds`.
 
 ---
-
 ### `get_horizon_status`
 
 Get a health snapshot of Laravel Horizon: supervisor states, paused/running, failed jobs per minute.
 
-**Parameters:**
-
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `app_slug` | string | Yes | App slug |
-
-**Returns:** `status` (`running` / `paused` / `inactive`), `failed_jobs_per_minute`, `supervisors` array with `name`, `status`, `processes`.
+**Returns:** `status` (`running` / `paused` / `inactive`), `failed_jobs_per_minute`, `supervisors` array.
 
 ---
-
 ### `list_recent_alerts`
 
 List alerts that have fired within the last N hours.
@@ -149,13 +187,11 @@ List alerts that have fired within the last N hours.
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `app_slug` | string | Yes | App slug |
 | `hours` | number | No | Look-back window in hours (default: 24) |
 
-**Returns:** Array of alert objects with `alert_key`, `state` (`firing` / `resolved`), `fired_at`, `resolved_at`, `message`.
+**Returns:** Array of alert objects with `alert_key`, `state` (`firing` / `resolved`), `fired_at`, `resolved_at`.
 
 ---
-
 ### `acknowledge_alert`
 
 Dismiss an active alert so it stops notifying.
@@ -164,34 +200,25 @@ Dismiss an active alert so it stops notifying.
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `app_slug` | string | Yes | App slug |
 | `alert_key` | string | Yes | Alert key (from `list_recent_alerts`) |
 
 **Returns:** `{ acknowledged: true, alert_key: "..." }` on success.
 
 ---
-
 ### `create_alert`
 
-Create a new alert channel for an app. Requires a Pro or Team plan.
+Create a new alert channel for an app. Requires a Starter, Pro, or Ultra plan.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `app_slug` | string | Yes | App slug |
 | `type` | string | Yes | `slack`, `email`, or `webhook` |
-| `config` | object | Yes | Channel-specific config (see below) |
+| `webhook_url` | string | No | Slack incoming webhook URL (required for `slack`) |
+| `to` | string | No | Recipient email address (required for `email`) |
+| `url` | string | No | Webhook endpoint URL (required for `webhook`) |
 
-**Config by type:**
-
-| Type | Required fields |
-|---|---|
-| `slack` | `webhook_url`: Incoming Webhook URL |
-| `email` | `address`: Recipient email address |
-| `webhook` | `url`: Endpoint URL; optionally `secret` for HMAC signing |
-
-**Returns:** The new alert channel ID on success.
+**Returns:** `{ created: true, channel_id: "...", type: "..." }` on success.
 
 ---
 
