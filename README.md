@@ -254,7 +254,7 @@ For the full integration guide, tool reference, and setup walkthroughs:
 | Package | Description |
 |---|---|
 | [@crontinel/mcp-server](https://github.com/crontinel/mcp-server) | MCP server for AI assistants (this repo) |
-| [crontinel/laravel](https://github.com/crontinel/crontinel) | Laravel package that reports the data this server reads |
+| [crontinel/laravel](https://github.com/crontinel/laravel) | Laravel package that reports the data this server reads |
 | [docs.crontinel.com](https://docs.crontinel.com) | Full documentation |
 
 ## License
