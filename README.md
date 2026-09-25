@@ -5,14 +5,33 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/crontinel/mcp-server/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/crontinel/mcp-server)](https://github.com/crontinel/mcp-server)
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects AI assistants to [Crontinel](https://crontinel.com), the background job monitoring platform for Laravel. It runs as a local stdio process, proxying tool calls from your AI assistant to the Crontinel REST API.
+Connect assistants to Crontinel's monitoring evidence. This package runs as a local stdio adapter. Version 0.3 adds generated MCP keys and fetches the permitted tool list from the hosted server.
 
-Ask your AI assistant questions like "Did my cron jobs run last night?" or "What's the queue depth right now?" or "Trigger a redeploy" and get answers inline, without opening a browser.
+## Recommended: remote OAuth
+
+Use `https://app.crontinel.com/mcp` with a remote MCP client. Sign in to Crontinel, select one organization and its apps, then approve read permissions. No key needs to be copied. OAuth runs over HTTP, not stdio.
+
+The initial read tools are `get_connection`, `list_monitors`, `list_runs`, and `list_incidents`. Lists require `app_id` and accept `after_id` and `limit` (maximum 100). They return timestamps and bounded metadata. They don't return job output, command arguments, credentials, or mutation tools.
+
+The September 2026 local acceptance run exercised Codex 0.154.0 OAuth/CIMD plus connection and run reads; Claude Code 2.1.281 OAuth with pre-registration and connection health; and Cursor CLI 2026.08.25-3e8eec8 OAuth with pre-registration and tool discovery. These are local acceptance results, not a claim that every hosted or desktop configuration has been tested.
+
+## Generated-key stdio connection
+
+Create a key in **Settings → AI connections → Use an API key** at [AI connections](https://app.crontinel.com/settings/ai-connections). Choose organization, apps, read scopes and expiry. Save the secret when shown; it cannot be retrieved later.
+
+Pass it to the adapter through `CRONTINEL_MCP_KEY` in your client's environment or secret store. Start `crontinel-mcp` from the installed package. For development, build this checkout and start `node dist/index.js`.
+
+- `CRONTINEL_MCP_KEY`: generated `ct_mcp_...` key. Takes precedence over the legacy variable.
+- `CRONTINEL_API_URL`: optional base URL, default `https://app.crontinel.com`. Scoped connections require HTTPS except for local loopback tests.
+- The adapter initializes the remote server and forwards its scope-filtered tools. Invalid or revoked scoped keys fail; they never fall back to legacy authentication.
+- Rotation and revocation are available in AI connections. Existing running clients must receive the replacement environment value and restart after rotation.
+
+Version 0.3 must be published before using it through `npx @crontinel/mcp-server@0.3.0`. The packaged-artifact acceptance harness is in the workspace at `scripts/test-mcp-adapter.py`.
 
 ## Requirements
 
 - Node.js 18+
-- A Crontinel account with an API key — get one at [app.crontinel.com/settings](https://app.crontinel.com/settings)
+- A Crontinel account and a generated MCP key from [AI connections](https://app.crontinel.com/settings/ai-connections).
 
 ## Installation
 
@@ -26,7 +45,9 @@ Or install globally:
 npm install -g @crontinel/mcp-server
 ```
 
-## Configuration
+## Legacy app-key configuration
+
+The examples below retain the older `CRONTINEL_API_KEY` path for existing installations. Those app keys use `/api/mcp` and the older tool names. They are not scoped MCP keys. Switching to a generated key changes the advertised tools; migrate prompts to the read-tool names above. A `ct_mcp_` key supplied through the old variable is also recognized as scoped.
 
 ### Claude Desktop
 
@@ -48,7 +69,7 @@ Add to your `claude_desktop_config.json`:
 
 ### Claude Code
 
-Add to `~/.claude/settings.json` (or use the Claude Code settings UI):
+Use `claude mcp add` for current Claude Code configuration. The JSON below describes the legacy stdio process and environment; it isn't a `settings.json` file:
 
 ```json
 {
@@ -127,7 +148,7 @@ Add to `~/.continue/config.json`:
 | `CRONTINEL_API_KEY` | Yes | n/a | Your Crontinel API key |
 | `CRONTINEL_API_URL` | No | `https://app.crontinel.com` | Override the API base URL (self-hosted or local dev) |
 
-## Available Tools
+## Legacy app-key tools
 
 | Tool | Description |
 |---|---|
@@ -226,16 +247,16 @@ Create a new alert channel for an app. Requires a Starter, Pro, or Ultra plan.
 
 1. Your AI assistant spawns the MCP server as a local stdio process
 2. The server receives JSON-RPC tool calls over stdin
-3. It forwards each call as an HTTP request to `app.crontinel.com/api/mcp` with your API key in the `Authorization` header
+3. Scoped keys connect to `app.crontinel.com/mcp`; legacy app keys use `app.crontinel.com/api/mcp`. Both use the `Authorization` header.
 4. The JSON-RPC response is returned over stdout
 
-All tool definitions are declared locally so your AI can inspect them without a network round-trip.
+Scoped tool definitions come from the authenticated remote server. Legacy tool definitions remain declared locally for compatibility.
 
 ## Troubleshooting
 
-**`401 Unauthorized`**: Your `CRONTINEL_API_KEY` is missing or invalid. Check that the env var is set in your MCP config, not your shell profile (MCP servers don't inherit your shell environment).
+**`401 Unauthorized`**: Check key expiry, revocation and current organization membership. Ensure the client actually passes the configured environment to its subprocess. Environment inheritance depends on the client.
 
-**`404 Not Found` on a tool call**: The `app_slug` doesn't match any app in your account. Copy the slug from the app URL in the Crontinel dashboard (`app.crontinel.com/apps/{slug}`).
+**Resource denied**: The selected `app_id` must belong to the fixed organization and app selection in the grant. A dashboard organization switch doesn't change the grant.
 
 **Tools not showing up in Claude/Cursor**: Restart the AI client after updating the MCP config. Most clients only load MCP servers at startup.
 

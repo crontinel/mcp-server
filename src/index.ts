@@ -2,6 +2,8 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -9,11 +11,13 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 
-const API_KEY = process.env.CRONTINEL_API_KEY;
+const API_KEY = process.env.CRONTINEL_MCP_KEY ?? process.env.CRONTINEL_API_KEY;
 const API_URL = process.env.CRONTINEL_API_URL ?? 'https://app.crontinel.com';
+const scoped = process.env.CRONTINEL_MCP_KEY !== undefined || API_KEY?.startsWith('ct_mcp_');
+const remote = new Client({ name: 'crontinel-stdio-adapter', version: '0.3.0' });
 
 if (!API_KEY) {
-  console.error('Error: CRONTINEL_API_KEY environment variable is required');
+  console.error('Error: CRONTINEL_MCP_KEY is required (CRONTINEL_API_KEY remains supported for legacy clients)');
   process.exit(1);
 }
 
@@ -115,14 +119,18 @@ async function callCrontinel(method: string, params: Record<string, unknown>): P
 }
 
 const server = new Server(
-  { name: 'crontinel', version: '0.2.0' },
+  { name: 'crontinel', version: '0.3.0' },
   { capabilities: { tools: {} } }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+server.setRequestHandler(ListToolsRequestSchema, async () => scoped ? remote.listTools() : ({ tools: TOOLS }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+
+  if (scoped) {
+    return await remote.callTool({ name, arguments: args ?? {} });
+  }
 
   const result = await callCrontinel('tools/call', { name, arguments: args ?? {} });
 
@@ -130,12 +138,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
+  if (scoped) {
+    if (!API_KEY?.startsWith('ct_mcp_')) {
+      throw new Error('CRONTINEL_MCP_KEY must be a generated MCP key');
+    }
+    const endpoint = new URL(`${API_URL.replace(/\/$/, '')}/mcp`);
+    if (endpoint.protocol !== 'https:' && !(endpoint.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname))) {
+      throw new Error('Use HTTPS, or HTTP loopback for local tests');
+    }
+    if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+      throw new Error('Endpoint must not contain credentials, query parameters or fragments');
+    }
+    await remote.connect(new StreamableHTTPClientTransport(endpoint, {
+      requestInit: { headers: { Authorization: `Bearer ${API_KEY}` }, redirect: 'error' },
+    }));
+  } else {
+    console.error('Legacy app-key mode: migrate to CRONTINEL_MCP_KEY for scoped, read-only tools.');
+  }
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('Crontinel MCP server running');
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err);
+main().catch(() => {
+  console.error('Connection failed. Check the endpoint, credential type, expiry and permissions.');
   process.exit(1);
 });
