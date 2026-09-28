@@ -123,13 +123,15 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => scoped ? remote.listTools() : ({ tools: TOOLS }));
+server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => scoped
+  ? remote.listTools(request.params ?? {}, { signal: extra.signal })
+  : ({ tools: TOOLS }));
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
   const { name, arguments: args } = request.params;
 
   if (scoped) {
-    return await remote.callTool({ name, arguments: args ?? {} });
+    return await remote.callTool({ name, arguments: args ?? {} }, undefined, { signal: extra.signal });
   }
 
   const result = await callCrontinel('tools/call', { name, arguments: args ?? {} });
